@@ -349,7 +349,9 @@ to it is returned.  This function does not modify the point or the mark."
 	   (zmacs-activate-region)
 	 (zmacs-deactivate-region))
     ;; Emacs.
-    `(setq mark-active ,activate)))
+    `(if ,activate
+         (activate-mark)
+       (deactivate-mark))))
 
 (defmacro c-delete-and-extract-region (start end)
   "Delete the text between START and END and return it."
