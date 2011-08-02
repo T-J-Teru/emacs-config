@@ -46,7 +46,7 @@ use GiveHelp qw/usage/;         # Allow -h or --help command line options.
 my $script_filename = abs_path ($0);
 my $script_dir = dirname ($script_filename);
 
-my $emacs_dir = $ENV{HOME} . "/.emacs.d";
+my $emacs_dir = $ENV{HOME} . "/tmp/.emacs.d";
 
 my $verbose = 0;
 my $pretend = 0;
@@ -69,68 +69,7 @@ if (not (-d $emacs_dir))
 
 my @dont_install = load_dont_install_list ($script_dir);
 
-opendir my $dh, $script_dir or
-  die "Failed to open directory '$script_dir': $!";
-
-while (my $file = readdir $dh)
-{
-  next if ($file =~ m/^\./);
-  next if ($file =~ m/~$/);
-
-  next if (is_file_in_dont_install_list ($file, @dont_install));
-
-  if (-e $emacs_dir . "/" . $file)
-  {
-    my $new = $emacs_dir . "/" . $file;
-    
-    if ( -l $new)
-    {
-      my $link = readlink $new or
-        die "Failed to readlink '$new': $!";
-
-      my $old = $script_dir . "/" . $file;
-      
-      if (abs_path ($link) eq abs_path ($old))
-      {
-        if ($verbose)
-        {
-          print "File '$file' already installed.\n";
-        }
-      }
-      else
-      {
-        warn "File '$new' already exists, can't install '$file'\n";
-      }
-      
-    }
-    else
-    {
-      warn "File '$new' already exists, can't install '$file'\n";
-    }
-  }
-  else
-  {
-    my $old = $script_dir . "/" . $file;
-    my $new = $emacs_dir . "/" . $file;
-
-    if ($verbose)
-    {
-      print "Creating link '$old' -> '$new'\n";
-    }
-    
-    if (not $pretend)
-    {      
-      symlink $old, $new or 
-        die "Failed to create symlink '$old' -> '$new': $!";
-    }
-  }
-}
-
-
-
-
-closedir $dh or
-  die "Failed to close directory '$script_dir': $!";
+install ($emacs_dir, $script_dir, @dont_install);
 
 #========================================================================#
 
@@ -143,6 +82,93 @@ The following methods are defined in this script.
 =over 4
 
 =cut
+
+#========================================================================#
+
+=pod
+
+=item B<install>
+
+Currently undocumented.
+
+=cut
+
+sub install {
+  my $dest = shift;
+  my $src  = shift;  
+  my @dont_install = @_;
+
+  opendir my $dh, $src or
+    die "Failed to open directory '$src': $!";
+  
+  my @contents = readdir $dh;
+  
+  closedir $dh or
+    die "Failed to close directory '$src': $!";
+  
+  foreach my $file (@contents)
+  {
+    next if ($file =~ m/^\./);
+    next if ($file =~ m/~$/);
+    next if (is_file_in_dont_install_list ($file, @dont_install));
+
+    my $old = $src . "/" . $file;
+    my $new = $dest . "/" . $file;
+
+    if (-l $new)
+    {
+      my $link = readlink $new or
+        die "Failed to readlink '$new': $!";
+      
+      if (abs_path ($link) eq abs_path ($old))
+      {
+        if ($verbose)
+        {
+          print "File '$file' already installed.\n";
+        }
+      }
+      else
+      {
+        warn "File '$new' already exists, can't install '$file'\n";
+      }
+    }
+    elsif (-d $old)
+    {
+      if (-e $new and (not -d $new))
+      {
+        warn "Directory '$new' can't be created.\n";
+      }
+      elsif (not -e $new)
+      {
+        if ($verbose)
+        {
+          print "Creating directory '$new'\n";
+        }
+        
+        if (not $pretend)
+        {
+          mkdir $new or
+            die "Failed to create directory '$new': $!";
+        }
+      }
+      
+      install ($new, $old, @dont_install);
+    }
+    else
+    {      
+      if ($verbose)
+      {
+        print "Creating link '$old' -> '$new'\n";
+      }
+      
+      if (not $pretend)
+      {      
+        symlink $old, $new or 
+          die "Failed to create symlink '$old' -> '$new': $!";
+      }
+    }
+  }
+}
 
 #========================================================================#
 
