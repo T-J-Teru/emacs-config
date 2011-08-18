@@ -542,32 +542,10 @@
 (put 'downcase-region 'disabled nil)
 
 ;; ===========================================================================
-;; Mark the fill column, either with a thin line, or by shading the area
-;; to the right of the fill column.
+;; Mark the fill column using a thin line, setup key combo to toggle mode.
 (require 'fill-column-indicator)
-
-(defun toggle-fci-mode ()
-  "Toggle through fci modes, off -> shaded -> rule -> off, and so on."
-  (interactive)
-  (if (boundp 'fci-mode)
-      (if fci-mode
-          (progn  ; fci-mode ON
-            (if (eq fci-style 'rule)
-                (progn
-                  (fci-mode -1)  
-                  (message "fci-mode off."))
-              (progn              ; shaded -> rule
-                (setq fci-style 'rule)
-                (fci-mode 1)
-                (message "fci-mode, rule style selected."))))
-        (progn  ; fci-mode OFF
-          (setq fci-style 'shading)
-          (fci-mode 1)
-          (message "fci-mode, shading style selected.")))
-    (if (called-interactively-p)
-        (message "Fill column indicator not available"))))
-
-(global-set-key (kbd "C-x |") 'toggle-fci-mode)  
+(setq-default fill-column 75)
+(global-set-key (kbd "C-x |") 'fci-mode)
 
 ;; ===========================================================================
 ;;       Color Theme
