@@ -13,7 +13,7 @@ install.pl - Install links from this directory to ~/.emacs.d/
 
 =head1 OPTIONS
 
-B<install.pl> [-h|--help] [-p|--pretend] [-v|--verbose]
+B<install.pl> [-h|--help] [-p|--pretend] [-v|--verbose] [--dir=<DIR>]
 
 =head1 SYNOPSIS
 
@@ -27,31 +27,44 @@ warnings that would have been printed.
 
 With I<--verbose> print more information about what is being done.
 
+The destination directory can be changed from ~/.emacs.d/ using the
+I<--dir> option.
+
 =cut
 
 #========================================================================#
 
-# --
-# Standard Perl Modules.
 use Cwd 'abs_path';
 use File::Basename;
 use Getopt::Long;
+use Pod::Usage;
 
-# --
-# User Defined Modules.
-use lib "$ENV{HOME}/lib";
-use GiveHelp qw/usage/;         # Allow -h or --help command line options.
-
-# First check to see if we're in the .emacs.d directory already.
-my $script_filename = abs_path ($0);
-my $script_dir = dirname ($script_filename);
-
-my $emacs_dir = $ENV{HOME} . "/tmp/.emacs.d";
+my $script_dir = dirname (abs_path ($0));
+my $emacs_dir = undef;
 
 my $verbose = 0;
 my $pretend = 0;
+my $help = 0;
 GetOptions ("verbose|v" => \$verbose,
-            "pretend|p" => \$pretend);
+            "pretend|p" => \$pretend,
+            "help|h"    => \$help,
+            "dir|d=s"   => \$emacs_dir);
+
+if ($help) 
+{ 
+  pod2usage ({-exitval => 0});
+  exit(1);
+}
+ 
+if (not defined $emacs_dir)
+{
+  $emacs_dir = $ENV{HOME} . "/tmp/emacs.d";
+}
+
+if (abs_path ($script_dir) eq abs_path ($emacs_dir))
+{
+  pod2usage ({-exitval => 1});
+}
 
 if (not (-d $emacs_dir))
 {
@@ -65,6 +78,11 @@ if (not (-d $emacs_dir))
     mkdir $emacs_dir or
       die "Failed to create directory '$emacs_dir': $!";
   }
+}
+
+if ($verbose)
+{
+  print "Installing into '$emacs_dir'\n";
 }
 
 my @dont_install = load_dont_install_list ($script_dir);
@@ -132,30 +150,13 @@ sub install {
         warn "File '$new' already exists, can't install '$file'\n";
       }
     }
-    elsif (-d $old)
+    elsif (-d $old and -d $new)
     {
-      if (-e $new and (not -d $new))
-      {
-        warn "Directory '$new' can't be created.\n";
-      }
-      elsif (not -e $new)
-      {
-        if ($verbose)
-        {
-          print "Creating directory '$new'\n";
-        }
-        
-        if (not $pretend)
-        {
-          mkdir $new or
-            die "Failed to create directory '$new': $!";
-        }
-      }
-      
+      # The new directory already exists, recursively install into it.
       install ($new, $old, @dont_install);
     }
     else
-    {      
+    {
       if ($verbose)
       {
         print "Creating link '$old' -> '$new'\n";
