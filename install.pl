@@ -58,7 +58,7 @@ if ($help)
  
 if (not defined $emacs_dir)
 {
-  $emacs_dir = $ENV{HOME} . "/tmp/emacs.d";
+  $emacs_dir = $ENV{HOME} . "/.emacs.d";
 }
 
 if (abs_path ($script_dir) eq abs_path ($emacs_dir))
