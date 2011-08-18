@@ -19,6 +19,7 @@
 (add-to-list 'load-path (concat elisp-directory "/color-theme"))
 (add-to-list 'load-path (concat elisp-directory "/yasnippet"))
 (add-to-list 'load-path (concat elisp-directory "/cedet"))
+(add-to-list 'load-path (concat elisp-directory "/site-specific"))
 
 ;; ===========================================================================
 ;; Allow auto complete mode to be toggled on and off. This uses features that
@@ -524,11 +525,6 @@
 (autoload 'rm-mouse-drag-region "rect-mark" "Drag out a rectangular region with the mouse." t)
 
 ;; ===========================================================================
-;; My work in progress mode for editing Firepath assembler.
-(autoload 'fp-asm-mode "fp-asm-mode" "Load Firepath assembler mode handling." t)
-(add-to-list 'auto-mode-alist '("\\.fp\\'" . fp-asm-mode))
-
-;; ===========================================================================
 ;; Special mode for editing CGEN .cpu files, basically scheme mode with
 ;; some extra highlighting thrown in.
 (autoload 'cpu-mode "cpu-mode")
@@ -605,6 +601,10 @@
 (define-key global-map "\C-cc" 'org-capture)
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
+
+;; ===========================================================================
+;; Load site specific initialisaion - don't error if it can't be found.
+(require 'site-init nil t)
 
 ;; ===========================================================================
 ;; Hints & Tips
