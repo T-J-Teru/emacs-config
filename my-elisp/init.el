@@ -39,6 +39,10 @@
 ;; causes any currently displayed frames to be updated immediately.
 (setq default-frame-alist `((width . 80) 
                             (height . 40) 
+                            ;; menu-bar-lines and tool-bar-lines are how old
+                            ;; versions of emacs (before 24) initialised the
+                            ;; menu & tool bars.  Now we just check the
+                            ;; values of menu-bar-mode and tool-bar-mode.
                             (menu-bar-lines . 0)
                             (tool-bar-lines . 0)
                             (background-color . "black") 

@@ -21,4 +21,12 @@
         (menu-bar-mode -1)
       (menu-bar-mode 1))))
 
+;; Initially, we want the menu and tool bars to be off.  On earlier
+;; versions of emacs this is done by setting attributes in the
+;; frame-alist. (See my general init.el code).
+(if (>= emacs-major-version 24)
+    (progn
+      (menu-bar-mode -1)
+      (tool-bar-mode -1)))
+
 (provide 'menu-toggle)
