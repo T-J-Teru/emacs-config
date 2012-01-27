@@ -461,11 +461,11 @@ Font for POD headers."
 ;;; Some double-evaluation happened with font-locks...  Needed with 21.2...
 (defvar cperl-singly-quote-face (featurep 'xemacs))
 
-(defcustom cperl-invalid-face 'underline
-  "*Face for highlighting trailing whitespace."
-  :type 'face
-  :version "21.1"
-  :group 'cperl-faces)
+;(defcustom cperl-invalid-face 'underline
+;  "*Face for highlighting trailing whitespace."
+;  :type 'face
+;  :version "21.1"
+;  :group 'cperl-faces)
 
 (defcustom cperl-pod-here-fontify '(featurep 'font-lock)
   "*Not-nil after evaluation means to highlight POD and here-docs sections."
@@ -695,6 +695,10 @@ This way enabling/disabling of menu items is more correct."
   "Font Lock mode face used to highlight hash names."
   :group 'cperl-faces)
 
+(defface cperl-invalid-face
+  `((t (:inherit default)))
+  "Font Lock mode face used to highlight trailing whitespace."
+  :group 'cperl-faces)
 
 
 ;;; Short extra-docs.
@@ -1894,7 +1898,6 @@ or as help on variables `cperl-tips', `cperl-problems',
        (cperl-msb-fix))
   (if (featurep 'easymenu)
       (easy-menu-add cperl-menu))	; A NOP in Emacs.
-  (run-mode-hooks 'cperl-mode-hook)
   (if cperl-hook-after-change
       (add-hook 'after-change-functions 'cperl-after-change-function nil t))
   ;; After hooks since fontification will break this
@@ -5679,7 +5682,7 @@ indentation and initial hashes.  Behaves usually outside of comment."
 	  (setq
 	   t-font-lock-keywords
 	   (list
-	    `("[ \t]+$" 0 ',cperl-invalid-face t)
+	    '("[ \t]+$" 0 'cperl-invalid-face t)
 	    (cons
 	     (concat
 	      "\\(^\\|[^$@%&\\]\\)\\<\\("
