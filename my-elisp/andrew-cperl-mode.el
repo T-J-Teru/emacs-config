@@ -9,9 +9,13 @@
   (setq cperl-font-lock t)
   (setq cperl-hairy 'nil)
   ;;
-  ;; Prevent underline being used for end of line whitespace.
-  (setq cperl-invalid-face 'nil)
-  (setq cperl-highlight-variables-indiscriminately 't))
+  ;; Prevent underline being used for end of line whitespace. This used to
+  ;; work upto emacs 23 but then got broken.
+  (if (<= emacs-major-version 23)
+      (progn
+        (setq cperl-invalid-face nil)
+        (setq cperl-highlight-variables-indiscriminately 't)))
+  )
 
 ;;============================================================================
 ;; This will configure some faces for me

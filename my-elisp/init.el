@@ -21,6 +21,9 @@
 (add-to-list 'load-path (concat elisp-directory "/cedet"))
 (add-to-list 'load-path (concat elisp-directory "/site-specific"))
 
+(if (>= emacs-major-version 24)
+    (add-to-list 'load-path (concat elisp-directory "/cperl-mode")))
+
 ;; ===========================================================================
 ;; Allow auto complete mode to be toggled on and off. This uses features that
 ;; are only available on version 23 of emacs (or above).
@@ -226,6 +229,13 @@
    (if (eq (cdr pair) 'perl-mode)
        (setcdr pair 'cperl-mode)))
  (append auto-mode-alist interpreter-mode-alist))
+
+;; A bug in emacs 24 causes the following line to be needed.
+;; Would be nice to remove this one day.
+(if (>= emacs-major-version 24)
+    (progn
+      (defvar cperl-invalid-face nil)
+      (setq cperl-highlight-variables-indiscriminately 't)))
 
 ;; Now load my cperl customisations when entering cperl-mode.
 (autoload 'andrew-cperl-mode "andrew-cperl-mode")
