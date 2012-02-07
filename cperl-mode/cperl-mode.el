@@ -5949,11 +5949,16 @@ indentation and initial hashes.  Behaves usually outside of comment."
 		  ;; (if (cperl-slash-is-regexp)
 		  ;;    font-lock-function-name-face 'default) nil t))
 		  )))
-	  (if cperl-highlight-variables-indiscriminately
-	      (setq t-font-lock-keywords-1
-		    (append t-font-lock-keywords-1
-			    (list '("\\([$*]{?\\sw+\\)" 1
-				    font-lock-variable-name-face)))))
+          (setq t-font-lock-keywords-1
+                (append t-font-lock-keywords-1
+                        (list '("\\([$*]{?\\sw+\\)" 1
+                                ;; Not 100% sure this is ok, if we turn
+                                ;; this feature off then we'll retun the
+                                ;; face nil, which seems to do the right
+                                ;; thing (no highlighting) but not sure
+                                ;; this is allowed.
+                                (if cperl-highlight-variables-indiscriminately
+				    font-lock-variable-name-face nil)))))
 	  (setq cperl-font-lock-keywords-1
 		(if cperl-syntaxify-by-font-lock
 		    (cons 'cperl-fontify-update
