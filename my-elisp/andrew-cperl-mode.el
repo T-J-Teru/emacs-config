@@ -48,6 +48,8 @@
 ;; into a perl module then use an access modifier, otherwise don't bother.
 (defun insert-perl-method (name) 
   (interactive)
+  (if (or (not name) (string= name ""))
+      (error "Invalid subroutine name"))
   (progn
     ;; Work out if we are in a perl module, or perl script
     (let* ((is-perl-module (string-match "\.pm$" (buffer-file-name))))
@@ -110,9 +112,72 @@
       )))
 
 ;;==========================================================================
+;; Toggle the visibility comment on this method - will only work inside
+;; perl modules as scripts don't include a visibility comment.  In scripts
+;; this should do nothing.
+(defun toggle-perl-function-visibility ()
+  (interactive)
+  (save-excursion
+    (save-match-data
+      (let* ((orig-point (point))
+             (sub-start (progn 
+                          (if (not (beginning-of-defun))
+                              (error "Can't find subroutine start"))
+                          (point)))
+             (sub-name (progn
+                         (if (not (looking-at "^sub \\([a-z][a-z0-9_]*\\) {"))
+                             (error "Couldn't match subroutine definition line"))
+                         (match-string 1)))
+             (sub-pod-regexp (concat "^=item.*B<" sub-name ">"))
+             (sub-end (progn
+                        (end-of-defun)
+                        (point))))
+        ;; Check that the point is inside the function.  This will fail to
+        ;; do the right thing if we were originally on the sub header line,
+        ;; as in this case the beginning-of-defun call will take us to the
+        ;; previous subroutine.
+        (if (or (< orig-point sub-start) (> orig-point sub-end))
+            (error "Outside of subroutine"))
+        ;; Now try to find the =pod ... =cut block for this sub.
+        (goto-char sub-start)
+        (skip-chars-backward "[\n\r[:space:]]")
+        (beginning-of-line)
+        (if (not (looking-at-p "=cut"))
+            (error "Didn't find end of =pod ... =cut for subroutine"))
+        (if (not (search-backward-regexp "^=pod"))
+            (error "Didn't find start of =pod ... =cut for subroutine"))
+        (if (not (search-forward-regexp sub-pod-regexp))
+            (error "Didn't find subroutine =item line in pod"))
+        (beginning-of-line)
+        ;; Should now be at the start of the =item line for this
+        ;; subroutine.  We now check for I<Public> or I<Private> on this
+        ;; line, and if one of them is found change it to the other.
+        (if (not (looking-at "^=item I<\\(\\(Public\\)\\|\\(Private\\)\\)>"))
+            (error "No Public|Private found on =item line in pod"))
+        (forward-char (length "=item I<"))
+        ;; The match-string is extracted from the buffer, so we don't
+        ;; delete until we know what it is we're going to insert.
+        (if (string= (match-string 1) "Public")
+            (progn
+              (delete-char (length "Public"))
+              (insert "Private"))
+          (progn
+            (delete-char (length "Private"))
+            (insert "Public")))
+        (beginning-of-line)
+        ;; If we loaded the pulse library then pulse the line we just changed.
+        (if (fboundp 'pulse-momentary-highlight-one-line)
+            (pulse-momentary-highlight-one-line (point)))
+        )
+      )
+    )
+  )
+  
+;;==========================================================================
 ;; Arrange for perl specific key bindings to be set up.
 (defun andrew-cperl-mode/keybindings ()
-  ( local-set-key (kbd "C-x /") 'start-new-perl-function) )
+  (local-set-key (kbd "C-x /") 'start-new-perl-function)
+  (local-set-key (kbd "C-x ?") 'toggle-perl-function-visibility))
 
 (defun andrew-cperl-mode/setup-style ()
   (add-to-list 'cperl-style-alist '("AndrewPerl"
@@ -130,6 +195,9 @@
 ;;============================================================================
 ;; Function that gets called from cperl-mode-hook to configure cperl-mode.
 (defun andrew-cperl-mode ()
+  ;; Load the cool pulse library from CEDET, if it's available.
+  (require 'pulse nil t)
+
   (andrew-cperl-mode/variable-setup)
   (andrew-cperl-mode/provide-perldoc)
   (andrew-cperl-mode/face-changes)
