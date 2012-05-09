@@ -15,19 +15,23 @@
 (add-to-list 'load-path elisp-directory)
 (add-to-list 'load-path (concat elisp-directory "/completion-ui"))
 (add-to-list 'load-path (concat elisp-directory "/ess-5.7.1/lisp"))
-(add-to-list 'load-path (concat elisp-directory "/cc-mode-5.31.3"))
 (add-to-list 'load-path (concat elisp-directory "/color-theme"))
 (add-to-list 'load-path (concat elisp-directory "/yasnippet"))
-(add-to-list 'load-path (concat elisp-directory "/cedet"))
 (add-to-list 'load-path (concat elisp-directory "/site-specific"))
 
 (if (>= emacs-major-version 24)
     (add-to-list 'load-path (concat elisp-directory "/cperl-mode")))
 
+
+;; I believe there's a bug in cc-mode after about version 5.31.3 which can
+;; cause it to go into an infinite loop in some rare cases.  At some point
+;; I'd like to at least create a reproducible bug for this.
+(add-to-list 'load-path (concat elisp-directory "/cc-mode-5.32.2"))
+
 ;; ===========================================================================
 ;; Allow auto complete mode to be toggled on and off. This uses features that
 ;; are only available on version 23 of emacs (or above).
-(if (eq emacs-major-version 23)
+(if (>= emacs-major-version 23)
     (progn 
       (add-to-list 'load-path (concat elisp-directory "/auto-complete"))
       (autoload 'auto-complete-mode "auto-complete")
@@ -79,7 +83,7 @@
 
 ;; ===========================================================================
 ;; Better buffer list.
-(global-set-key "\C-x\C-b" 'electric-buffer-list)
+(global-set-key (kbd "C-x C-b") 'ibuffer)
 
 (setq buffer-menu-buffer-font-lock-keywords
       '(("^....[*]Man .*Man.*"   . font-lock-variable-name-face) ;Man page
@@ -132,6 +136,11 @@
 
 (add-hook 'font-lock-mode-hook 'andrew-configure-font-lock-mode)
 (global-font-lock-mode t)
+
+;;===========================================================================
+;; Change the shadow face. Used in the mini-buffer to shadow out
+;; unused parts of the filename.
+(set-face-attribute 'shadow nil :foreground "gray35")
 
 ;;===========================================================================
 ;; Set up the spell checker to use.
@@ -351,8 +360,10 @@
 (global-set-key (kbd "C-x C-h") 'hl-line-mode)
 
 ;;============================================================================
-;; Allow line numbers in the buffer.
-(global-set-key (kbd "C-x N") 'global-linum-mode)
+;; Toggle line numbers in the left margin in either just this buffer 'n' or
+;; in all buffers 'N'.
+(global-set-key (kbd "C-c n") 'linum-mode)
+(global-set-key (kbd "C-c N") 'global-linum-mode)
 
 ;;============================================================================
 ;; Allow me to grow/shrink the window (when spilt horizontally)
@@ -499,13 +510,17 @@
 
 ;; ===========================================================================
 ;; Make diff mode a little prettier
+
+(set-face-attribute 'shadow nil :foreground "grey50")
+
 (defun andrew-configure-diff-mode ()  
   (set-face-attribute 'diff-file-header nil
                       :foreground "green"
                       :background "unspecified")
 
   (set-face-attribute 'diff-header nil
-                      :foreground "steel blue"
+                      :foreground "cyan"
+                      :weight 'bold
                       :background "unspecified")
 
   (set-face-attribute 'diff-function nil
@@ -515,6 +530,25 @@
   (set-face-attribute 'diff-refine-change nil
                       :foreground "black"
                       :background "pale turquoise")
+
+  (set-face-attribute 'diff-indicator-added nil
+                      :weight 'bold
+                      :foreground "green")
+
+  (set-face-attribute 'diff-indicator-removed nil
+                      :weight 'bold
+                      :foreground "red")
+
+  (set-face-attribute 'diff-indicator-changed nil
+                      :weight 'bold
+                      :foreground "yellow")
+
+  (font-lock-add-keywords nil
+   '(("^index \\(.+\\).*\n"
+      (0 diff-header-face) (1 diff-index-face prepend))
+     ("^diff --git \\(.+\\).*\n"
+      (0 diff-header-face) (1 diff-file-header-face prepend))
+     ))
   )
 
 (add-hook 'diff-mode-hook 'andrew-configure-diff-mode)
@@ -584,7 +618,7 @@
   (let ((org-directory (expand-file-name "~/.org/")))
     (concat org-directory name)))
 
-(setq org-agenda-files (list (org-file "/")))
+(setq org-agenda-files (list (org-file "")))
 
 (setq org-default-notes-file (org-file "refile.org"))
 
@@ -599,7 +633,16 @@
 (require 'site-init nil t)
 
 ;; ===========================================================================
+;; Configure the header line.
+(set-face-attribute 'header-line nil
+                    :foreground "grey75"
+                    :background "grey30"
+                    :box '(:line-width 1 :color "red"))
+
+;; ===========================================================================
 ;; Hints & Tips
 ;; ============
 ;;
 ;; Regexp matching for "[" or "]" in a character set: [][]
+
+(message "All done")
