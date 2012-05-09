@@ -46,7 +46,7 @@
 ;;============================================================================
 ;; Create a new perl function, and insert a prototype. If we are inserting
 ;; into a perl module then use an access modifier, otherwise don't bother.
-(defun insert-perl-method (name) 
+(defun andrew-cperl/insert-sub (name) 
   (interactive)
   (if (or (not name) (string= name ""))
       (error "Invalid subroutine name"))
@@ -66,16 +66,40 @@
       ;; Only modules expect to be object-oriented.
       (if is-perl-module (insert "  my $self = shift;\n"))
       (insert "  ")
-      ;; Store the pointer - this is where it will be left, ready
-      ;; to type the code for the function body.
-      (set 'stored-point-pos (point))
-      (insert "\n}\n\n")
-      (insert "#========================================================================#\n")
-      ;; And move the point back to the stored position.
-      (goto-char stored-point-pos)
+      (save-excursion
+        (insert "\n}\n\n")
+        (insert "#========================================================================#\n"))
+      (point)
       )))
 
-(defun start-new-perl-function (f-name)
+;; Take the name of a subroutine, return the point position for the start
+;; of the subroutine line, or nil if the subroutine can't be found.
+(defun andrew-cperl/find-existing-sub (sub-name)
+  (save-excursion
+    ;; Move to start of buffer
+    (goto-char (point-min))
+    ;; Look method with this name
+    (if (re-search-forward (format "sub +%s \\((\\|{\\)" sub-name) (point-max) t)
+        ;;  if found then error name clash
+        (progn
+          (beginning-of-line)
+          (point))
+      nil)))
+
+;; Return the point position at which a new subroutine should be inserted.
+;; Will raise an error if the position can't be determined.
+(defun andrew-cperl/find-new-sub-position ()
+  (save-excursion
+    (goto-char (point-min))
+    (if (not (re-search-forward "^=head1 METHODS" (point-max) t))
+        ;;  if not found then error, failed to insert new method
+        (error "Failed to find start of METHOD pod"))
+    (if (not (re-search-forward "^=cut *\n.*\n#=+# *\n" (point-max) t))
+        ;;  if not found then error, failed to insert new method
+        (error "Failed to find end of METHOD pod"))
+    (point)))
+
+(defun andrew-cperl/new-sub (f-name)
   "Using my perl template insert a new perl function, and position the point ready to start typing"
 
   ;; Provide a default argument of the word the curser is currently on.
@@ -90,32 +114,46 @@
       (if (equal name "") default name))))
   
   ;; Now check that we can identify where to put the new method, and place it.
-  (let ((current-point-position (point)))
-    (progn 
-      ;; Move to start of buffer
-      (goto-char (point-min))
-      ;; Look method with this name
-      (if (re-search-forward (format "sub +%s \\((\\|{\\)" f-name) (point-max) t)
-          ;;  if found then error name clash
-          (error "Function already exists"))
-      ;; Move to start of buffer
-      (goto-char (point-min))
-      ;; Look for place to insert new method
-      (if (not (re-search-forward "^=head1 METHODS" (point-max) t))
-          ;;  if not found then error, failed to insert new method
-          (error "Failed to find start of METHOD pod"))      
-      (if (not (re-search-forward "^=cut *\n.*\n#=+# *\n" (point-max) t))
-          ;;  if not found then error, failed to insert new method
-          (error "Failed to find end of METHOD pod"))
-      ;;  insert the new method
-      (insert-perl-method f-name)      
-      )))
+  (let ((destination-pos (point)))
+    (save-excursion
+      (let ((existing-sub-pos (andrew-cperl/find-existing-sub f-name)))
+        (if (not existing-sub-pos)
+            (progn
+              (goto-char (andrew-cperl/find-new-sub-position))
+              (set 'destination-pos (andrew-cperl/insert-sub f-name)))
+          (set 'destination-pos existing-sub-pos))))
+              
+    ;; If we get here with no errors then the function was created, before
+    ;; we move there, push the mark so we can always come back here
+    ;; quickly.
+    (push-mark (point) t)
+    (goto-char destination-pos)))
 
-;;==========================================================================
-;; Toggle the visibility comment on this method - will only work inside
-;; perl modules as scripts don't include a visibility comment.  In scripts
-;; this should do nothing.
-(defun toggle-perl-function-visibility ()
+;==========================================================================
+(defun andrew-cperl/current-sub-name ()
+  "Return the name of the perl subroutine we're currently \"within\" in the 
+current buffer.  Within is interpreted rather loosely, as this function tries 
+to return something sensible if the point is on the sub line, or if the point 
+is within the =pod ... =cut documentation for this subroutine."
+  (error "TODO: This needs fixing..."
+  (save-excursion
+    (save-match-data
+      (let ((sub-name nil))
+        (flet (sub-line? (lambda () (looking-at 
+                                  "^sub \\([a-z][a-z0-9_]*\\) {")))
+          (beginning-of-line)
+          (if (not (sub-line?))
+              (progn
+                (beginning-of-defun)
+                (if (not (sub-line?))
+                    (error "Couldn't find subroutine start"))))
+          (match-string 1)))))))
+
+(defun andrew-cperl/toggle-visibility ()
+  "Toggle the visibility comment within the =pod ... =cut section of the
+documentation for the current subroutine.  This will only have an effect
+within perl modules where there is a visibility specifier, in scripts this
+should have no effect."
   (interactive)
   (save-excursion
     (save-match-data
@@ -176,8 +214,8 @@
 ;;==========================================================================
 ;; Arrange for perl specific key bindings to be set up.
 (defun andrew-cperl-mode/keybindings ()
-  (local-set-key (kbd "C-x /") 'start-new-perl-function)
-  (local-set-key (kbd "C-x ?") 'toggle-perl-function-visibility))
+  (local-set-key (kbd "C-x /") 'andrew-cperl/new-sub)
+  (local-set-key (kbd "C-x ?") 'andrew-cperl/toggle-visibility))
 
 (defun andrew-cperl-mode/setup-style ()
   (add-to-list 'cperl-style-alist '("AndrewPerl"
