@@ -1,8 +1,10 @@
 ;; ========================================================================
-;; Create a new style for editing C/C++ code, and select this style.
-(defun andrew-cc-mode/set-style ()
+(defun andrew-cc-mode/setup-styles ()
+  "Create new C/C++ coding styles for various projects."
+
+  ;; For editing binutils code.
   (c-add-style
-   "ANDREW-C"
+   "gnu/binutils"
    '(
      "gnu"
      (c-basic-offset . 2)
@@ -14,8 +16,49 @@
                          (block-open . +)
                          (defun-open . 0)
                          (brace-list-open . 0)
+                         ))))
+
+  ;; Style used for Broadcom dspcontrol code.
+  (c-add-style
+   "broadcom/dspcontrol"
+   '(
+     "linux"
+     (c-basic-offset . 4)
+     (c-offsets-alist . (
+                         (case-label . +)
                          ))
-     ) t)
+     ))
+
+  ;; My personal c style, needs some more customisation.
+  (c-add-style
+   "andrew/c"
+   '(
+     "gnu"
+     ))
+  )
+
+(defun andrew-cc-mode/pick-style ()
+  "Pick the correct C/C++ coding style based on filename, or pick a default."
+  (interactive)
+  (let ((style nil))
+    
+    ;; Pick a style based on the buffer file name.
+    (if buffer-file-name
+        (cond
+         ((string-match "src/fpsdk/libsyschip/" buffer-file-name)
+          (setq style "broadcom/dspcontrol"))
+         ((string-match "src/fp_binutils/binutils/" buffer-file-name)
+          (setq style "gnu/binutils"))))
+    
+    ;; Set the selected style, or pick a good default.
+    (if (not style)
+        (progn
+          (setq style "gnu/binutils")  ;; Pick a default style
+          (message "Using default coding style: %s" style))
+      (progn
+        (message "Picked coding style: %s" style)
+        (c-set-style style)))
+    )
   )
 
 ;; ========================================================================
@@ -41,7 +84,7 @@
 ;; Settings for editing C/C++ files.
 (defun andrew-cc-mode ()
   ;; Pick a nice code layout style.
-  (andrew-cc-mode/set-style)
+  (andrew-cc-mode/pick-style)
   
   ;; Auto newline, and hungry delete.
   (c-toggle-auto-hungry-state t)
@@ -69,3 +112,6 @@
   ;(setq ac-auto-start 3)
   ;(define-key ac-complete-mode-map "\M-/" 'ac-stop)  
   )
+
+;; Setup all my C mode styles
+(andrew-cc-mode/setup-styles)

@@ -1,3 +1,5 @@
+(require 'linked-regions)
+
 ;;============================================================================
 ;; Configuration for cperl mode.
 (defun andrew-cperl-mode/variable-setup ()
@@ -48,27 +50,47 @@
 ;; into a perl module then use an access modifier, otherwise don't bother.
 (defun andrew-cperl/insert-sub (name) 
   (interactive)
+                                        ;  (require 'linked-regions)
   (if (or (not name) (string= name ""))
       (error "Invalid subroutine name"))
   (progn
     ;; Work out if we are in a perl module, or perl script
-    (let* ((is-perl-module (string-match "\.pm$" (buffer-file-name))))
+    (let* ((is-perl-module (string-match "\.pm$" (buffer-file-name)))
+           p1 p2)
       ;; Start inserting the new function.
       (insert "\n=pod\n\n")
       ;; Only modules get public/private type comment.
       (if is-perl-module
-          (insert (format "=item I<Private>: B<%s>\n\n" name))
-        (insert (format "=item B<%s>\n\n" name)))
+          (insert "=item I<Private>: B<")
+        (insert "=item B<"))
+      (setq p1 (point))
+      (insert ">\n\n")
+
       ;; More function comment and code...
       (insert "Currently undocumented.\n\n")
       (insert "=cut\n\n")
-      (insert (format "sub %s {\n" name))
+      (insert "sub ")
+      (setq p2 (point))
+      (insert " {\n")
       ;; Only modules expect to be object-oriented.
       (if is-perl-module (insert "  my $self = shift;\n"))
       (insert "  ")
       (save-excursion
         (insert "\n}\n\n")
         (insert "#========================================================================#\n"))
+
+      ;; Insert the function name now, do it here as I'm trying to develop
+      ;; this linked region module to make the comments auto-updating.
+      (if (fboundp 'create-linked-regions-at-points)
+          (create-linked-regions-at-points p1 p2 name)
+        (save-excursion
+          ;; Insert at p2 first as this is later in the buffer.  If we insert
+          ;; at p1 first then p2 (an offset into the buffer) will no longer
+          ;; contain the correct value.
+          (goto-char p2)
+          (insert name)
+          (goto-char p1)
+          (insert name)))
       (point)
       )))
 
@@ -126,6 +148,7 @@
     ;; If we get here with no errors then the function was created, before
     ;; we move there, push the mark so we can always come back here
     ;; quickly.
+    (message "mark @ %s" (point))
     (push-mark (point) t)
     (goto-char destination-pos)))
 

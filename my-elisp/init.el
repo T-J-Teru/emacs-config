@@ -26,7 +26,9 @@
 ;; I believe there's a bug in cc-mode after about version 5.31.3 which can
 ;; cause it to go into an infinite loop in some rare cases.  At some point
 ;; I'd like to at least create a reproducible bug for this.
-(add-to-list 'load-path (concat elisp-directory "/cc-mode-5.32.2"))
+(if (file-exists-p (concat elisp-directory "/cc-mode-head"))
+    (add-to-list 'load-path (concat elisp-directory "/cc-mode-head"))
+  (add-to-list 'load-path (concat elisp-directory "/cc-mode-5.32.2")))
 
 ;; ===========================================================================
 ;; Allow auto complete mode to be toggled on and off. This uses features that
@@ -159,6 +161,8 @@
   ;; ispell calls it an english dictionary.
   (progn (setq flyspell-default-dictionary "english")
          (setq ispell-dictionary "english")))
+
+(require 'andrew-ispell)
 
 ;;============================================================================
 ;; Highlight bracket to bracket.
