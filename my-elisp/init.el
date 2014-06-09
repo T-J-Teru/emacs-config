@@ -12,16 +12,20 @@
 ;; Add extra directories to the load path.
 (defconst elisp-directory (expand-file-name "~/.emacs.d/"))
 
-(add-to-list 'load-path elisp-directory)
+(add-to-list 'load-path (concat elisp-directory "/lisp"))
 (add-to-list 'load-path (concat elisp-directory "/completion-ui"))
 (add-to-list 'load-path (concat elisp-directory "/ess-5.7.1/lisp"))
 (add-to-list 'load-path (concat elisp-directory "/color-theme"))
-(add-to-list 'load-path (concat elisp-directory "/yasnippet"))
+(add-to-list 'load-path (concat elisp-directory "/magit"))
+(add-to-list 'load-path (concat elisp-directory "/ace-jump-mode"))
+(add-to-list 'load-path (concat elisp-directory "/ace-window"))
 (add-to-list 'load-path (concat elisp-directory "/site-specific"))
+(add-to-list 'load-path (concat elisp-directory "/my-elisp"))
+;; (add-to-list 'load-path (concat elisp-directory "/lisp/auto-complete-git"))
+;; (add-to-list 'load-path (concat elisp-directory "/lisp/popup-git"))
 
 (if (>= emacs-major-version 24)
     (add-to-list 'load-path (concat elisp-directory "/cperl-mode")))
-
 
 ;; I believe there's a bug in cc-mode after about version 5.31.3 which can
 ;; cause it to go into an infinite loop in some rare cases.  At some point
@@ -67,7 +71,7 @@
 ;;============================================================================
 ;; Give me more room to type. Turn off menu and tool bar.
 (require 'menu-toggle)
-(global-set-key [f12] 'toggle-menubar-and-toolbar)
+(global-set-key (kbd "<f12>") 'toggle-menubar-and-toolbar)
 
 ;; ===========================================================================
 ;; Load undo-tree
@@ -86,6 +90,7 @@
 ;; ===========================================================================
 ;; Better buffer list.
 (global-set-key (kbd "C-x C-b") 'ibuffer)
+(add-hook 'ibuffer-mode-hook (lambda () (hl-line-mode 1)))
 
 (setq buffer-menu-buffer-font-lock-keywords
       '(("^....[*]Man .*Man.*"   . font-lock-variable-name-face) ;Man page
@@ -140,9 +145,9 @@
 (global-font-lock-mode t)
 
 ;;===========================================================================
-;; Change the shadow face. Used in the mini-buffer to shadow out
-;; unused parts of the filename.
-(set-face-attribute 'shadow nil :foreground "gray35")
+;; This face is used in the mini-buffer to shadow out unused parts of the
+;; filename.
+(set-face-attribute 'file-name-shadow nil :foreground "gray35")
 
 ;;===========================================================================
 ;; Set up the spell checker to use.
@@ -227,7 +232,7 @@
 ;; Faces for flyspell-mode
 (add-hook 'flyspell-mode-hook
           (lambda()
-            (set-face-attribute 'flyspell-duplicate-face nil
+            (set-face-attribute 'flyspell-duplicate nil
                                 :foreground "DeepSkyBlue1"
                                 :underline t
                                 :weight 'bold)))
@@ -366,6 +371,8 @@
 ;;============================================================================
 ;; Toggle line numbers in the left margin in either just this buffer 'n' or
 ;; in all buffers 'N'.
+(require 'linum+)
+(setq linum-narrow-relative nil)
 (global-set-key (kbd "C-c n") 'linum-mode)
 (global-set-key (kbd "C-c N") 'global-linum-mode)
 
@@ -547,6 +554,12 @@
                       :weight 'bold
                       :foreground "yellow")
 
+  (set-face-attribute 'diff-removed nil
+                      :background "black")
+
+  (set-face-attribute 'diff-added nil
+                      :background "black")
+
   (font-lock-add-keywords nil
    '(("^index \\(.+\\).*\n"
       (0 diff-header-face) (1 diff-index-face prepend))
@@ -609,14 +622,21 @@
 ;;       Org Mode
 (add-to-list 'load-path (concat elisp-directory "/org-mode/lisp"))
 (add-to-list 'load-path (concat elisp-directory "/org-mode/contrib/lisp"))
-(require 'org-install)
+(require 'org)
 (add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
 (setq org-log-done t)
 
-(add-hook 'org-mode-hook 
-          (lambda () 
-            (auto-fill-mode 1)
-            (flyspell-mode 1)))
+(defun my-org-mode-hook ()
+  (auto-fill-mode 1)
+  (flyspell-mode 1)
+  (setq org-hide-leading-stars t)
+  (set-face-attribute 'org-hide nil
+                      :foreground "grey30")
+  (setq org-hide-emphasis-markers t)
+  (set-face-attribute 'org-code nil
+                      :inherit 'unspecified
+                      :foreground "deep sky blue"))
+(add-hook 'org-mode-hook 'my-org-mode-hook)
 
 (defun org-file (name)
   (let ((org-directory (expand-file-name "~/.org/")))
@@ -633,8 +653,39 @@
 (define-key global-map "\C-ca" 'org-agenda)
 
 ;; ===========================================================================
+;; Window Configuration Undo/Redo
+(winner-mode 1)
+
+;; ===========================================================================
+;; Better rectange selection.
+(cua-selection-mode 1)
+
+;; ===========================================================================
 ;; Load site specific initialisaion - don't error if it can't be found.
 (require 'site-init nil t)
+
+;; ===========================================================================
+;; Don't let the cursor go into minibuffer prompt.
+(setq minibuffer-prompt-properties (quote 
+                                    (read-only t point-entered
+                                               minibuffer-avoid-prompt
+                                               face minibuffer-prompt)))
+
+;; ===========================================================================
+
+(setq ctl-x-a-map (make-sparse-keymap))
+(define-key ctl-x-map "\C-a" ctl-x-a-map)
+
+(require 'ace-jump-mode)
+
+(define-key ctl-x-a-map "j" 'ace-jump-word-mode)
+(define-key ctl-x-a-map "J" 'ace-jump-char-mode)
+
+(global-set-key (kbd "C-x /") 'ace-jump-word-mode)
+
+(require 'ace-window)
+(define-key ctl-x-a-map "o" 'ace-window)
+         
 
 ;; ===========================================================================
 ;; Configure the header line.

@@ -1,4 +1,4 @@
-(require 'linked-regions)
+; (require 'linked-regions)
 
 ;;============================================================================
 ;; Configuration for cperl mode.
@@ -50,7 +50,6 @@
 ;; into a perl module then use an access modifier, otherwise don't bother.
 (defun andrew-cperl/insert-sub (name) 
   (interactive)
-                                        ;  (require 'linked-regions)
   (if (or (not name) (string= name ""))
       (error "Invalid subroutine name"))
   (progn
@@ -79,20 +78,16 @@
         (insert "\n}\n\n")
         (insert "#========================================================================#\n"))
 
-      ;; Insert the function name now, do it here as I'm trying to develop
-      ;; this linked region module to make the comments auto-updating.
-      (if (fboundp 'create-linked-regions-at-points)
-          (create-linked-regions-at-points p1 p2 name)
-        (save-excursion
-          ;; Insert at p2 first as this is later in the buffer.  If we insert
-          ;; at p1 first then p2 (an offset into the buffer) will no longer
-          ;; contain the correct value.
-          (goto-char p2)
-          (insert name)
-          (goto-char p1)
-          (insert name)))
-      (point)
-      )))
+      (save-excursion
+        ;; Insert at p2 first as this is later in the buffer.  If we insert
+        ;; at p1 first then p2 (an offset into the buffer) will no longer
+        ;; contain the correct value.
+        (goto-char p2)
+        (insert name)
+        (goto-char p1)
+        (insert name)))
+    (point)
+    ))
 
 ;; Take the name of a subroutine, return the point position for the start
 ;; of the subroutine line, or nil if the subroutine can't be found.
@@ -270,4 +265,8 @@ should have no effect."
       (progn
         (setq fill-column 75) 
         (setq fci-style 'rule)
-        (fci-mode))))
+        (fci-mode)))
+
+  ;; Turn on trailing whitespace highlighting.
+  (if (boundp 'whitespace-mode)
+      (whitespace-mode 1)))
